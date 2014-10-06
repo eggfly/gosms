@@ -9,14 +9,15 @@ import(
 const RECV_BUF_LEN = 1024
 
 func main() {
-    listener, err := net.Listen("tcp", "0.0.0.0:6666")//侦听在6666端口
+    const ADDR = "0.0.0.0:6666"
+    listener, err := net.Listen("tcp", ADDR)
     if err != nil {
         panic("error listening:"+err.Error())
     }
-    fmt.Println("Starting the server")
+    fmt.Println("Starting the server: " + ADDR)
 
     for{
-        conn, err := listener.Accept() //接受连接
+        conn, err := listener.Accept()
         if err != nil {
             panic("Error accept:" + err.Error())
         }
@@ -29,7 +30,7 @@ func EchoServer(conn net.Conn) {
     buf := make([]byte, RECV_BUF_LEN)
     defer conn.Close()
 
-    for{
+    for {
         n, err := conn.Read(buf);
         switch err {
             case nil:
