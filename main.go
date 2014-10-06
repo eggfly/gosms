@@ -12,16 +12,16 @@ func main() {
     const ADDR = "0.0.0.0:6666"
     listener, err := net.Listen("tcp", ADDR)
     if err != nil {
-        panic("error listening:"+err.Error())
+        panic("error listening: " + err.Error())
     }
     fmt.Println("Starting the server: " + ADDR)
 
     for{
         conn, err := listener.Accept()
         if err != nil {
-            panic("Error accept:" + err.Error())
+            panic("Error accept: " + err.Error())
         }
-        fmt.Println("Accepted the Connection :", conn.RemoteAddr())
+        fmt.Println("Accepted the Connection: ", conn.RemoteAddr())
         go EchoServer(conn)
     }
 }
