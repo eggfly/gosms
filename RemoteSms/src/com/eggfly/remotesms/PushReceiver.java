@@ -21,6 +21,6 @@ public class PushReceiver extends BroadcastReceiver {
 	}
 
 	private void startPushService(Context context) {
-		context.startService(new Intent(PushService.ACTION_START));
+		context.startService(new Intent(context, PushService.class));
 	}
 }
