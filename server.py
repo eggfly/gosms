@@ -44,13 +44,15 @@ def command(s, data):
         queue.append(cmd_str)
         worker_online = worker_socket is not None
         worker_status = "ONLINE" if worker_online else "OFFLINE"
-	s.send('GOT COMMAND: %s, STATUS: %s\n' %(cmd, worker_status))
+        s.send('SERVER_GOT_COMMAND: %s, STATUS: %s\n' %(cmd, worker_status))
         if worker_online:
             for item in queue:
                 worker_socket.send(cmd_str+'\n')
             queue = []
         else:
-            print "worker_socket is not present! saved into queue."
+            print "worker_socket is not present! saved into queue, result: %s" %queue
+def worker_response(data):
+    pass
 def disconnect(s):
     global socket_map, worker_socket
     if worker_socket == s:
@@ -58,18 +60,17 @@ def disconnect(s):
         print "worker_socket removed: %s" %s
     elif socket_map.has_key(s):
         item = socket_map[s]
-	del socket_map[s]
-	print "socket removed from map: %s, %s" %(s, item)
-
+        del socket_map[s]
+        print "socket removed from map: %s, %s" %(s, item)
+# main
 while True:
     inputready, outputready, exceptready = select.select(inputs, [], [])
-    print "len(inputready): %s" %len(inputready)
+    # print "len(inputready): %s" %len(inputready)
     for s in inputready:
         if s == server:
             # handle the server socket
             client, address = server.accept()
             # client.settimeout(3)
-            # print dir(client)
             print "peer connected %s:%s" %address
             inputs.append(client)
         elif s == sys.stdin:
@@ -82,10 +83,12 @@ while True:
             # print dir(s)
             f = s.makefile()
             data = f.readline()
-            print "received: %s" %repr(data)
             # data = s.recv(size)
             if data:
-                if socket_person_map.has_key(s):
+                print "received: %s" %repr(data)
+                if s == worker_socket:
+                    worker_response(s, data)
+                if socket_map.has_key(s):
                     command(s, data)
                 else:
                     identify(s, data)
@@ -94,6 +97,6 @@ while True:
                 s.close()
                 inputs.remove(s)
                 disconnect(s)
-                print "closed: " + str(s)
+                print "remote socket closed: " + str(s)
 server.close()
 
