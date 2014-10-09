@@ -14,13 +14,9 @@ public class ConditionsReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
-            startPushService(context);
+            SmsPushService.startPushService(context);
         } else if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            startPushService(context);
+            SmsPushService.startPushService(context);
         }
-    }
-
-    private void startPushService(Context context) {
-        context.startService(new Intent(context, SmsPushService.class));
     }
 }

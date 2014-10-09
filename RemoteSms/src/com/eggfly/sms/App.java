@@ -1,12 +1,8 @@
-/**
- * 
- */
 
 package com.eggfly.sms;
 
 import android.app.Application;
 import android.content.ComponentName;
-import android.content.Intent;
 import android.util.Log;
 
 /**
@@ -18,8 +14,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // this.startService(new Intent(this, PushService.class));
-        ComponentName name = startService(new Intent(SmsPushService.ACTION_START));
+        ComponentName name = SmsPushService.startPushService(this);
         Log.d(TAG, "startService result: " + name);
     }
 }
