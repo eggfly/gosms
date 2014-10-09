@@ -49,8 +49,13 @@ public class SmsPushService extends Service {
     }
 
     private class SocketTask extends AsyncTask<Void, Void, Void> {
+        private static final long DELAY_AFTER_EXCEPTION = 5000;
+        private static final long DELAY_AFTER_CONNECTION_CLOSED = 500;
+
         @Override
         protected Void doInBackground(Void... params) {
+            long delayTime = DELAY_AFTER_CONNECTION_CLOSED;
+            boolean success = false;
             while (true) {
                 try {
                     Socket socket = new Socket("aws.host8.tk", 6666);
@@ -62,21 +67,28 @@ public class SmsPushService extends Service {
                         String line = reader.readLine();
                         if (!TextUtils.isEmpty(line)) {
                             Log.i(TAG, line);
+                            success = true;
                         } else {
                             Log.w(TAG, "REMOTE CONNECTION CLOSED.");
+                            delayTime = DELAY_AFTER_CONNECTION_CLOSED;
                         }
                     } finally {
                         socket.close();
                     }
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
+                    delayTime = DELAY_AFTER_EXCEPTION;
                 } catch (IOException e) {
                     e.printStackTrace();
+                    delayTime = DELAY_AFTER_EXCEPTION;
                 }
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+
+                if (!success) {
+                    try {
+                        Thread.sleep(delayTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

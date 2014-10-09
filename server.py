@@ -17,6 +17,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind((host, port))
 server.listen(backlog)
+print "start listening on port: %s" %port
 # inputs = [server, sys.stdin]
 inputs = [server,]
 
