@@ -28,10 +28,20 @@ def identify(s, data):
     identity = data.strip()
     if identity == "WORKER":
         worker_socket = s
+        # try send message
+        try_send_one_message(s)
         return
     elif identity == "REQUESTER":
         socket_map[s] = ["REQUESTER", ]
         return
+def try_send_one_message(s):
+    global queue
+    if len(queue) == 0:
+        print "queue empty, waiting for request."
+        return
+    else:
+        item = queue.pop(0)
+        s.send(item+'\n')
 def command(s, data):
     global socket_map, queue
     identity = socket_map[s][0]
@@ -46,9 +56,7 @@ def command(s, data):
         worker_status = "ONLINE" if worker_online else "OFFLINE"
         s.send('SERVER_GOT_COMMAND: %s, STATUS: %s\n' %(cmd, worker_status))
         if worker_online:
-            for item in queue:
-                worker_socket.send(cmd_str+'\n')
-            queue = []
+            try_send_one_message(worker_socket)
         else:
             print "worker_socket is not present! saved into queue, result: %s" %queue
 def worker_response(data):
@@ -71,7 +79,7 @@ while True:
             # handle the server socket
             client, address = server.accept()
             # client.settimeout(3)
-            print "peer connected %s:%s" %address
+	    print "peer connected %s:%s,"%address, "socket: %s"%client
             inputs.append(client)
         elif s == sys.stdin:
             # handle standard input 
