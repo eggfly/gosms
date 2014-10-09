@@ -1,13 +1,12 @@
-
 package com.eggfly.sms;
-
-import java.util.Date;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.text.format.Time;
-import android.util.Log;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -30,17 +29,21 @@ public class MainActivity extends Activity implements OnClickListener {
         super.onCreate(savedInstanceState);
         sInstance = this;
         setContentView(R.layout.layout_main);
-        mStatusTextView = (TextView) findViewById(R.id.statusTextView);
+
         mLogEditText = (EditText) findViewById(R.id.logEditText);
         mLogEditText.setKeyListener(null);
+        mLogEditText.setText(UILogger.getFullLog());
+
         mStartServiceButton = (Button) findViewById(R.id.startServiceButton);
-        mStopServiceButton = (Button) findViewById(R.id.stopServiceButton);
         mStartServiceButton.setOnClickListener(this);
+
+        mStopServiceButton = (Button) findViewById(R.id.stopServiceButton);
+        mStatusTextView = (TextView) findViewById(R.id.statusTextView);
     }
 
     @Override
     protected void onResume() {
-        Log.d(TAG, "onResume");
+        UILogger.d(TAG, "onResume");
         super.onResume();
         refreshStatus();
     }
@@ -51,13 +54,15 @@ public class MainActivity extends Activity implements OnClickListener {
         sInstance = null;
     }
 
-    public static void logAppendLine(String log) {
-        final String line = String.format("%s: %s\n", new Date(), log);
+    public static void appendLog(final String log) {
         if (sInstance != null) {
             sInstance.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    sInstance.mLogEditText.append(line);
+                    SpannableString spannableString = new SpannableString(log);
+                    spannableString.setSpan(new ForegroundColorSpan(Color.RED),
+                            0, log.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    sInstance.mLogEditText.append(spannableString);
                 }
             });
         }

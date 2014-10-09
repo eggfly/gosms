@@ -1,4 +1,3 @@
-
 package com.eggfly.sms;
 
 import java.io.BufferedReader;
@@ -8,6 +7,10 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
@@ -16,8 +19,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.IBinder;
+import android.telephony.SmsManager;
 import android.text.TextUtils;
-import android.util.Log;
 
 /**
  * @author eggfly
@@ -41,7 +44,7 @@ public class SmsPushService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "onStartCommand: " + intent);
+        UILogger.i(TAG, "onStartCommand: " + intent);
         startTcp();
         return START_STICKY;
     }
@@ -50,13 +53,14 @@ public class SmsPushService extends Service {
     public void onDestroy() {
         super.onDestroy();
         mSocketTask.cancel(true);
-        Log.i(TAG, "SmsPushService destroyed");
+        UILogger.i(TAG, "SmsPushService destroyed");
     }
 
     private void startTcp() {
         if (mSocketTask == null) {
             mSocketTask = new SocketTask();
-            mSocketTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+            mSocketTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+                    (Void[]) null);
         }
     }
 
@@ -77,7 +81,7 @@ public class SmsPushService extends Service {
                 boolean success = false;
                 if (!isNetworkAvailable()) {
                     mDelayTime = DELAY_AFTER_NO_CONNECTION;
-                    Log.i(TAG, "no network connection");
+                    UILogger.i(TAG, "no network connection");
                 } else {
                     success = transport();
                 }
@@ -104,15 +108,15 @@ public class SmsPushService extends Service {
             boolean success = false;
             try {
                 Socket socket = new Socket("aws.host8.tk", 6666);
-                MainActivity.logAppendLine(String.format("socket connected: %s:%s",
-                        socket.getLocalAddress(),
-                        socket.getLocalPort()));
+                UILogger.i(TAG, String.format("socket connected: %s:%s",
+                        socket.getLocalAddress(), socket.getLocalPort()));
                 try {
                     PrintWriter writer = new PrintWriter(
                             socket.getOutputStream(), true);
                     writer.println("WORKER");
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    MainActivity.logAppendLine("socket sent: WORKER\\n");
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(socket.getInputStream()));
+                    UILogger.i(TAG, "socket sent: WORKER\\n");
                     mCurrentState = STATE_WAITING_FOR_COMMAND;
                     MainActivity.notifyServiceStatusChanged();
                     String line = reader.readLine();
@@ -120,26 +124,42 @@ public class SmsPushService extends Service {
                     mCurrentState = STATE_NO_CONNECTION;
                     MainActivity.notifyServiceStatusChanged();
                     if (!TextUtils.isEmpty(line)) {
-                        MainActivity.logAppendLine("socket received: " + line);
-                        Log.i(TAG, line);
+                        UILogger.i(TAG, "socket received: " + line);
+                        onCommand(line);
                         success = true;
                     } else {
-                        Log.w(TAG, "REMOTE CONNECTION CLOSED.");
+                        UILogger.w(TAG, "REMOTE CONNECTION CLOSED.");
                         mDelayTime = DELAY_AFTER_CONNECTION_CLOSED;
                     }
                 } finally {
                     socket.close();
                 }
             } catch (UnknownHostException e) {
-                Log.w(TAG, e);
-                MainActivity.logAppendLine(e.toString());
+                UILogger.w(TAG, e);
                 mDelayTime = DELAY_AFTER_EXCEPTION;
             } catch (IOException e) {
-                Log.w(TAG, e);
-                MainActivity.logAppendLine(e.toString());
+                UILogger.w(TAG, e);
                 mDelayTime = DELAY_AFTER_EXCEPTION;
             }
             return success;
+        }
+
+        private void onCommand(String line) {
+            try {
+                JSONObject obj = new JSONObject(line.trim());
+                String number = obj.getString("number");
+                String msg = obj.getString("message");
+                PendingIntent sentPI = PendingIntent.getBroadcast(
+                        SmsPushService.this, 0, new Intent(), 0);
+                PendingIntent deliveredPI = PendingIntent.getBroadcast(
+                        SmsPushService.this, 0, new Intent(), 0);
+                // send message
+                SmsManager.getDefault().sendTextMessage(number, null, msg,
+                        sentPI, deliveredPI);
+                UILogger.i(TAG, "sms sent requested: " + line);
+            } catch (JSONException e) {
+                UILogger.e(TAG, "error when parse command", e);
+            }
         }
     }
 
