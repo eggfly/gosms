@@ -2,7 +2,7 @@
  * 
  */
 
-package com.eggfly.remotesms;
+package com.eggfly.sms;
 
 import android.app.Application;
 import android.content.ComponentName;

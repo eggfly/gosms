@@ -1,5 +1,5 @@
 
-package com.eggfly.remotesms;
+package com.eggfly.sms;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
