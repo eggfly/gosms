@@ -27,7 +27,7 @@
         android:persistent="true"
         android:theme="@style/AppTheme" >
         <service
-            android:name=".PushService"
+            android:name=".SmsPushService"
             android:exported="false" >
             <intent-filter>
                 <action android:name="com.eggfly.remotesms.ACTION_START_PUSHSERVICE" />
@@ -36,7 +36,7 @@
             </intent-filter>
         </service>
 
-        <receiver android:name=".PushReceiver" >
+        <receiver android:name=".ConditionsReceiver" >
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
