@@ -92,7 +92,10 @@ public class SmsPushService extends Service {
             if (!isNetworkAvailable()) {
                 CommonLogger.i(TAG, "no network connection");
             } else {
-                transport();
+                boolean result = true;
+                while (result) {
+                    result = transport();
+                }
             }
             mSocketTask = null;
             return null;
