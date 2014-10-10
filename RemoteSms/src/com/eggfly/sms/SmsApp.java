@@ -8,13 +8,15 @@ import android.util.Log;
 /**
  * @author eggfly
  */
-public class App extends Application {
-    private static final String TAG = "App";
+public class SmsApp extends Application {
+    private static final String TAG = "SmsApp";
 
     @Override
     public void onCreate() {
         super.onCreate();
+        ConfigureLog4J.configure();
         ComponentName name = SmsPushService.startPushService(this);
         Log.d(TAG, "startService result: " + name);
+        CommonLogger.i(TAG, "SmsApp Created!");
     }
 }

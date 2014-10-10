@@ -1,16 +1,15 @@
+
 package com.eggfly.sms;
 
+import com.eggfly.sms.SmsPushService.PushServiceState;
+
 import android.app.Activity;
-import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 /**
@@ -32,18 +31,20 @@ public class MainActivity extends Activity implements OnClickListener {
 
         mLogEditText = (EditText) findViewById(R.id.logEditText);
         mLogEditText.setKeyListener(null);
-        mLogEditText.setText(UILogger.getFullLog());
+        // mLogEditText.setText(UILogger.getFullLog());
 
         mStartServiceButton = (Button) findViewById(R.id.startServiceButton);
         mStartServiceButton.setOnClickListener(this);
 
         mStopServiceButton = (Button) findViewById(R.id.stopServiceButton);
+        mStopServiceButton.setOnClickListener(this);
+
         mStatusTextView = (TextView) findViewById(R.id.statusTextView);
     }
 
     @Override
     protected void onResume() {
-        UILogger.d(TAG, "onResume");
+        CommonLogger.d(TAG, "onResume");
         super.onResume();
         refreshStatus();
     }
@@ -54,15 +55,12 @@ public class MainActivity extends Activity implements OnClickListener {
         sInstance = null;
     }
 
-    public static void appendLog(final String log) {
+    public static void appendLog(final CharSequence richtext) {
         if (sInstance != null) {
             sInstance.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    SpannableString spannableString = new SpannableString(log);
-                    spannableString.setSpan(new ForegroundColorSpan(Color.RED),
-                            0, log.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    sInstance.mLogEditText.append(spannableString);
+                    sInstance.mLogEditText.append(richtext);
                 }
             });
         }
@@ -84,7 +82,7 @@ public class MainActivity extends Activity implements OnClickListener {
         if (view == mStartServiceButton) {
             SmsPushService.startPushService(this);
         } else if (view == mStopServiceButton) {
-            stopService(new Intent(this, SmsPushService.class));
+            SmsPushService.stopPushService(this);
         } else {
             return;
         }
@@ -92,6 +90,28 @@ public class MainActivity extends Activity implements OnClickListener {
     }
 
     private void refreshStatus() {
-        mStatusTextView.setText(SmsPushService.getServiceStatusResId());
+        int state = SmsPushService.getServiceState();
+        boolean serviceRunning = state != PushServiceState.SERVICE_NOT_PRESENT;
+        mStartServiceButton.setEnabled(!serviceRunning);
+        mStopServiceButton.setEnabled(serviceRunning);
+
+        mStatusTextView.setText(convertStatusToStringResId(state));
+    }
+
+    private int convertStatusToStringResId(int state) {
+        switch (state) {
+        case PushServiceState.SERVICE_NOT_PRESENT:
+            return R.string.no_service_present;
+        case PushServiceState.SOCKET_CONNECTED_WAITING_FOR_COMMAND:
+            return R.string.socket_wait_for_command;
+        case PushServiceState.SOCKET_NO_NETWORK:
+            return R.string.socket_no_network;
+        case PushServiceState.SOCKET_NOT_CONNECTED:
+            return R.string.socket_not_connected;
+        case PushServiceState.SOCKET_TASK_NOT_RUNNING:
+            return R.string.socket_task_not_running;
+        default:
+            return R.string.socket_state_unknown;
+        }
     }
 }

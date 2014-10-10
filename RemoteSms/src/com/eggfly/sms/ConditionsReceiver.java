@@ -15,10 +15,10 @@ public class ConditionsReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
-            UILogger.i(TAG, "CONNECTIVITY_CHANGED");
+            CommonLogger.i(TAG, "CONNECTIVITY_CHANGED");
             SmsPushService.startPushService(context);
         } else if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            UILogger.i(TAG, "BOOT_COMPLETED");
+            CommonLogger.i(TAG, "BOOT_COMPLETED");
             SmsPushService.startPushService(context);
         }
     }

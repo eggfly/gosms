@@ -4,8 +4,9 @@
     <string name="connected_and_waiting">connected and waiting…</string>
     <string name="no_service_present">no service present</string>
     <string name="socket_task_not_running">socket task not running</string>
+    <string name="socket_no_network">no network</string>
     <string name="socket_wait_for_command">socket wait for command</string>
-    <string name="socket_no_connection">socket has no tcp connection</string>
+    <string name="socket_not_connected">socket not connected</string>
     <string name="socket_state_unknown">socket state unknown</string>
     <string name="button_start_service">start service</string>
     <string name="button_stop_service">stop service</string>
