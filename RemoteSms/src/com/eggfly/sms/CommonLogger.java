@@ -22,56 +22,48 @@ public class CommonLogger {
     private static Logger sFileLogger = Logger.getLogger(SmsApp.class);
 
     public static void v(String tag, String msg) {
-        Log.i(tag, msg);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.trace(line);
         appendUILog(Log.VERBOSE, line);
     }
 
     public static void d(String tag, String msg) {
-        Log.d(tag, msg);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.debug(line);
         appendUILog(Log.DEBUG, line);
     }
 
     public static void i(String tag, String msg) {
-        Log.i(tag, msg);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.info(line);
         appendUILog(Log.INFO, line);
     }
 
     public static void w(String tag, String msg) {
-        Log.w(tag, msg);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.warn(line);
         appendUILog(Log.WARN, line);
     }
 
     public static void w(String tag, Throwable tr) {
-        Log.w(tag, tr);
         final String line = generateTimeTagMessageLog(tag, "");
         sFileLogger.info(line);
         appendUILog(Log.WARN, appendThrowable(line, tr));
     }
 
     public static void w(String tag, String msg, Throwable tr) {
-        Log.w(tag, msg, tr);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.info(line, tr);
         appendUILog(Log.WARN, appendThrowable(line, tr));
     }
 
     public static void e(String tag, String msg) {
-        Log.e(tag, msg);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.error(line);
         appendUILog(Log.ERROR, line);
     }
 
     public static void e(String tag, String msg, Throwable tr) {
-        Log.e(tag, msg, tr);
         final String line = generateTimeTagMessageLog(tag, msg);
         sFileLogger.error(line, tr);
         appendUILog(Log.ERROR, appendThrowable(line, tr));
