@@ -38,7 +38,6 @@ public class SmsPushService extends Service {
 
     private static final String TAG = "SmsPushService";
     public static final String ACTION_START = "com.eggfly.sms.ACTION_START_PUSHSERVICE";
-    public static final String ACTION_STOP = "com.eggfly.sms.ACTION_STOP_PUSHSERVICE";
     public volatile SocketTask mSocketTask;
     private static SmsPushService sInstance;
 
@@ -56,12 +55,6 @@ public class SmsPushService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         CommonLogger.i(TAG, "onStartCommand: " + intent);
-        if (intent != null) {
-            if (ACTION_STOP.equals(intent.getAction())) {
-                stopSelf();
-                CommonLogger.i(TAG, "stopSelf");
-            }
-        }
         startTcp();
         MainActivity.notifyServiceStatusChanged();
         return START_STICKY;
@@ -71,9 +64,12 @@ public class SmsPushService extends Service {
     public void onDestroy() {
         super.onDestroy();
         sInstance = null;
-        mSocketTask.interruptSocket();
-        boolean result = mSocketTask.cancel(true);
-        CommonLogger.i(TAG, "mSocketTask cancel result: " + result);
+        if (mSocketTask != null) {
+            mSocketTask.interruptSocket();
+            boolean result = mSocketTask.cancel(true);
+            mSocketTask = null;
+            CommonLogger.i(TAG, "mSocketTask cancel result: " + result);
+        }
         CommonLogger.i(TAG, "SmsPushService destroyed");
         MainActivity.notifyServiceStatusChanged();
     }
@@ -88,36 +84,18 @@ public class SmsPushService extends Service {
 
     private class SocketTask extends AsyncTask<Void, Void, Void> {
 
-        private static final long DELAY_AFTER_NO_CONNECTION = 10 * 1000;
-        private static final long DELAY_AFTER_EXCEPTION = 5 * 1000;
-        private static final long DELAY_AFTER_CONNECTION_CLOSED = 0;
-        private long mDelayTime = DELAY_AFTER_CONNECTION_CLOSED;
-
         private int mCurrentState = PushServiceState.SOCKET_NOT_CONNECTED;
         private Socket mSocket;
 
         @Override
         protected Void doInBackground(Void... params) {
-            while (true) {
-                boolean success = false;
-                if (!isNetworkAvailable()) {
-                    mDelayTime = DELAY_AFTER_NO_CONNECTION;
-                    CommonLogger.i(TAG, "no network connection");
-                } else {
-                    success = transport();
-                }
-                if (isCancelled()) {
-                    CommonLogger.i(TAG, "Detected cancelled socket task, return.");
-                    return null;
-                }
-                if (!success) {
-                    try {
-                        Thread.sleep(mDelayTime);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
+            if (!isNetworkAvailable()) {
+                CommonLogger.i(TAG, "no network connection");
+            } else {
+                transport();
             }
+            mSocketTask = null;
+            return null;
         }
 
         public void interruptSocket() {
@@ -162,8 +140,7 @@ public class SmsPushService extends Service {
                         handleCommand(line);
                         success = true;
                     } else {
-                        CommonLogger.w(TAG, "REMOTE CONNECTION CLOSED.");
-                        mDelayTime = DELAY_AFTER_CONNECTION_CLOSED;
+                        CommonLogger.w(TAG, "EOF - SOCKET CONNECTION CLOSED.");
                     }
                 } finally {
                     mSocket.close();
@@ -172,10 +149,8 @@ public class SmsPushService extends Service {
                 }
             } catch (UnknownHostException e) {
                 CommonLogger.w(TAG, e);
-                mDelayTime = DELAY_AFTER_EXCEPTION;
             } catch (IOException e) {
                 CommonLogger.w(TAG, e);
-                mDelayTime = DELAY_AFTER_EXCEPTION;
             }
             return success;
         }
@@ -228,6 +203,7 @@ public class SmsPushService extends Service {
     public static void stopPushService(Context context) {
         if (sInstance != null) {
             sInstance.stopSelf();
+            // sInstance = null in onDestroy()
         }
     }
 
