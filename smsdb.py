@@ -29,7 +29,7 @@ def add_new_sms(user_id, to_address, message):
     return c.lastrowid
 def fetch_sms_task():
     c.execute("SELECT id, to_address, message FROM sms WHERE status = ? order by add_time", (STATE_SERVER_QUEUING,))
-    return c.fetchone()
+    return c.fetchone(), c.rowcount
 def set_sms_sent_to_worker(worker_info, sms_id):
     c.execute("UPDATE sms SET status = ?, worker_info = ? WHERE id = ?", (STATE_SENT_TO_WORKER, worker_info, sms_id))
     result = c.rowcount == 1

@@ -36,7 +36,8 @@ def identify(s, data):
         socket_map[s] = ["REQUESTER", ]
         return
 def try_send_one_message(s):
-    sms = smsdb.fetch_sms_task()
+    sms, count = smsdb.fetch_sms_task()
+    print "fetch_sms_task count: %s" %count
     if sms == None:
         print "queue empty, waiting for request."
         return
@@ -46,8 +47,8 @@ def try_send_one_message(s):
         message = sms[2]
         item = json.dumps({'type': 'sendsms', 'number': number, 'message': message})
         s.send(item+'\n')
-        result = set_sms_sent_to_worker(str(s), sms_id)
-        print "sent to worker and status updated in db: %s" result
+        result = smsdb.set_sms_sent_to_worker(str(s), sms_id)
+        print "sent to worker and status updated in db: %s" %result
 def command(s, data):
     global socket_map
     identity = socket_map[s][0]
@@ -84,7 +85,7 @@ while True:
             # handle the server socket
             client, address = server.accept()
             # client.settimeout(3)
-	    print "peer connected %s:%s,"%address, "socket: %s"%client
+            print "peer connected %s:%s,"%address, "socket: %s"%client
             inputs.append(client)
         elif s == sys.stdin:
             # handle standard input 
