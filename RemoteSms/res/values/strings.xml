@@ -10,5 +10,6 @@
     <string name="socket_state_unknown">socket state unknown</string>
     <string name="button_start_service">start service</string>
     <string name="button_stop_service">stop service</string>
-
+    <string name="button_set_address">set address</string>
+    
 </resources>

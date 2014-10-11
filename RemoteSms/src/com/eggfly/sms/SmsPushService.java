@@ -23,11 +23,17 @@ import android.os.AsyncTask;
 import android.os.IBinder;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
+import android.util.Pair;
 
 /**
  * @author eggfly
  */
 public class SmsPushService extends Service {
+    private final static String DEFAULT_HOST = "aws.host8.tk";
+    private final static int DEFAULT_PORT = 6666;
+    private static String sHost;
+    private final static int INVALID_PORT = -1; 
+    private static int sPort = INVALID_PORT;
     public static class PushServiceState {
         public final static int SERVICE_NOT_PRESENT = 0;
         public final static int SOCKET_TASK_NOT_RUNNING = 1;
@@ -124,7 +130,8 @@ public class SmsPushService extends Service {
         private boolean transport() {
             boolean success = false;
             try {
-                mSocket = new Socket("aws.host8.tk", 6666);
+                Pair<String, Integer> address = getAddress();
+                mSocket = new Socket(address.first, address.second);
                 CommonLogger.i(TAG, String.format("socket connected: %s:%s",
                         mSocket.getLocalAddress(), mSocket.getLocalPort()));
                 try {
@@ -188,6 +195,19 @@ public class SmsPushService extends Service {
         } else {
             return sInstance.getServiceStateInner();
         }
+    }
+
+    private static Pair<String, Integer> getAddress() {
+        if (!TextUtils.isEmpty(sHost) && sPort != INVALID_PORT) {
+            return new Pair<String, Integer>(sHost, sPort);
+        } else {
+            return new Pair<String, Integer>(DEFAULT_HOST, DEFAULT_PORT);
+        }
+    }
+
+    public static void setAddress(String host, int port) {
+        sHost = host;
+        sPort = port;
     }
 
     private int getServiceStateInner() {

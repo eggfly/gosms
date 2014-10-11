@@ -66,7 +66,7 @@ def command(s, data):
             try_send_one_message(worker_socket)
         else:
             print "worker_socket is not present! saved into db, result: %s" %result
-def worker_response(data):
+def worker_response(s, data):
     pass
 def disconnect(s):
     global socket_map, worker_socket

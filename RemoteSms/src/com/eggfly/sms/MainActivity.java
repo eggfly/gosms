@@ -1,4 +1,3 @@
-
 package com.eggfly.sms;
 
 import com.eggfly.sms.SmsPushService.PushServiceState;
@@ -21,6 +20,7 @@ public class MainActivity extends Activity implements OnClickListener {
     private TextView mStatusTextView;
     private Button mStartServiceButton;
     private Button mStopServiceButton;
+    private Button mSetAddressButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +37,9 @@ public class MainActivity extends Activity implements OnClickListener {
 
         mStopServiceButton = (Button) findViewById(R.id.stopServiceButton);
         mStopServiceButton.setOnClickListener(this);
+
+        mSetAddressButton = (Button) findViewById(R.id.setAddressButton);
+        mSetAddressButton.setOnClickListener(this);
 
         mStatusTextView = (TextView) findViewById(R.id.statusTextView);
     }
@@ -82,6 +85,13 @@ public class MainActivity extends Activity implements OnClickListener {
             SmsPushService.startPushService(this);
         } else if (view == mStopServiceButton) {
             SmsPushService.stopPushService(this);
+        } else if (view == mSetAddressButton) {
+            String host = ((EditText) findViewById(R.id.hostEditText))
+                    .getText().toString();
+            int port = Integer
+                    .valueOf(((EditText) findViewById(R.id.portEditText))
+                            .getText().toString());
+            SmsPushService.setAddress(host, port);
         } else {
             return;
         }
