@@ -47,7 +47,9 @@ def try_send_one_message(s):
         message = sms[2]
         item = json.dumps({'type': 'sendsms', 'number': number, 'message': message})
         s.send(item+'\n')
-        result = smsdb.set_sms_sent_to_worker(s.getpeername(), sms_id)
+        peer = s.getpeername()
+        worker_info = "%s:%s" %peer
+        result = smsdb.set_sms_sent_to_worker(worker_info, sms_id)
         print "sent to worker and status updated in db: %s" %result
 def command(s, data):
     global socket_map
@@ -94,10 +96,8 @@ while True:
             pass
         else:
             # handle all other sockets
-            # print dir(s)
             f = s.makefile()
             data = f.readline()
-            # data = s.recv(size)
             if data:
                 print "received: %s" %repr(data)
                 if s == worker_socket:
