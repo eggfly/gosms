@@ -7,6 +7,16 @@ sms db
 import sqlite3
 conn = sqlite3.connect('sms.db')
 c = conn.cursor()
-CREATE_SQL = '''create table if not exists sms(requester text, ip text, from_address text, to_address text, message text, add_time datetime, sent_time datetime, receive_time datetime, worker text)'''
+CREATE_SQL = '''CREATE TABLE [sms] (
+  [user] TEXT, 
+  [ip] TEXT, 
+  [from_address] TEXT, 
+  [to_address] TEXT, 
+  [message] TEXT, 
+  [add_time] DATETIME NOT NULL DEFAULT (datetime('now','localtime')), 
+  [send_time] DATETIME, 
+  [receive_time] DATETIME, 
+  [worker] TEXT);
+'''
 c.execute(CREATE_SQL)
 
