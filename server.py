@@ -8,6 +8,7 @@ import select
 import socket
 import sys
 import json
+import smsdb
 
 host = '' 
 port = 6666
@@ -22,7 +23,6 @@ print "start listening on port: %s" %port
 inputs = [server,]
 
 socket_map = {}
-queue = []
 worker_socket = None
 def identify(s, data):
     global socket_map, worker_socket
@@ -36,15 +36,20 @@ def identify(s, data):
         socket_map[s] = ["REQUESTER", ]
         return
 def try_send_one_message(s):
-    global queue
-    if len(queue) == 0:
+    sms = smsdb.fetch_sms_task()
+    if sms == None:
         print "queue empty, waiting for request."
         return
     else:
-        item = queue.pop(0)
+        sms_id = sms[0]
+        number = sms[1]
+        message = sms[2]
+        item = json.dumps({'type': 'sendsms', 'number': number, 'message': message})
         s.send(item+'\n')
+        result = set_sms_sent_to_worker(str(s), sms_id)
+        print "sent to worker and status updated in db: %s" result
 def command(s, data):
-    global socket_map, queue
+    global socket_map
     identity = socket_map[s][0]
     cmd_str = data.strip()
     if identity == "REQUESTER":
@@ -52,14 +57,14 @@ def command(s, data):
         cmd_type = cmd['type']
         number = cmd['number']
         msg = cmd['message']
-        queue.append(cmd_str)
+        result = smsdb.add_new_sms(1, number, msg)
         worker_online = worker_socket is not None
         worker_status = "ONLINE" if worker_online else "OFFLINE"
         s.send('SERVER_GOT_COMMAND: %s, STATUS: %s\n' %(cmd, worker_status))
         if worker_online:
             try_send_one_message(worker_socket)
         else:
-            print "worker_socket is not present! saved into queue, result: %s" %queue
+            print "worker_socket is not present! saved into db, result: %s" %result
 def worker_response(data):
     pass
 def disconnect(s):
@@ -74,7 +79,6 @@ def disconnect(s):
 # main
 while True:
     inputready, outputready, exceptready = select.select(inputs, [], [])
-    # print "len(inputready): %s" %len(inputready)
     for s in inputready:
         if s == server:
             # handle the server socket
@@ -108,4 +112,3 @@ while True:
                 disconnect(s)
                 print "remote socket closed: " + str(s)
 server.close()
-
