@@ -5,6 +5,13 @@ sms db
 """
 
 import sqlite3
+
+STATE_UNKNOWN = 0
+STATE_PENDING = 1
+STATE_WORKER_GOT = 2
+STATE_WORKER_SENT = 3
+STATE_DELIVERED = 4
+
 conn = sqlite3.connect('sms.db')
 c = conn.cursor()
 CREATE_SQL = '''CREATE TABLE IF NOT EXISTS [sms] (
