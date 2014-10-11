@@ -20,4 +20,9 @@ CREATE_SQL = '''CREATE TABLE [sms] (
   [worker] TEXT);
 '''
 c.execute(CREATE_SQL)
-
+def add_new_sms(to_address, message):
+    return True
+def get_sms_task():
+    return None
+def set_sms_sent_to_worker(sms_id):
+    return True
