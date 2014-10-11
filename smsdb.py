@@ -39,5 +39,5 @@ if __name__ == '__main__':
     print add_new_sms(2, '+8618601065423', u'TEST你好unicode\x00\x40\x70')
     result = fetch_sms_task()
     print result
-    sms_id = result[0]
+    sms_id = result[0][0]
     print set_sms_sent_to_worker("ip", sms_id)
