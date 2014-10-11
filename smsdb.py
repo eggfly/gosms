@@ -8,6 +8,7 @@ import sqlite3
 conn = sqlite3.connect('sms.db')
 c = conn.cursor()
 CREATE_SQL = '''CREATE TABLE [sms] (
+  [id] INTEGER PRIMARY KEY, 
   [user] TEXT, 
   [ip] TEXT, 
   [from_address] TEXT, 
