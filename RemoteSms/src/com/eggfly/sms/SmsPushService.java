@@ -3,12 +3,22 @@ package com.eggfly.sms;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,6 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.telephony.SmsManager;
@@ -32,8 +43,9 @@ public class SmsPushService extends Service {
     private final static String DEFAULT_HOST = "aws.host8.tk";
     private final static int DEFAULT_PORT = 6666;
     private static String sHost;
-    private final static int INVALID_PORT = -1; 
+    private final static int INVALID_PORT = -1;
     private static int sPort = INVALID_PORT;
+
     public static class PushServiceState {
         public final static int SERVICE_NOT_PRESENT = 0;
         public final static int SOCKET_TASK_NOT_RUNNING = 1;
@@ -44,7 +56,7 @@ public class SmsPushService extends Service {
 
     private static final String TAG = "SmsPushService";
     public static final String ACTION_START = "com.eggfly.sms.ACTION_START_PUSHSERVICE";
-    public volatile SocketTask mSocketTask;
+    public volatile PushTaskBase mSocketTask;
     private static SmsPushService sInstance;
 
     @Override
@@ -71,7 +83,7 @@ public class SmsPushService extends Service {
         super.onDestroy();
         sInstance = null;
         if (mSocketTask != null) {
-            mSocketTask.interruptSocket();
+            mSocketTask.interruptConnetion();
             boolean result = mSocketTask.cancel(true);
             mSocketTask = null;
             CommonLogger.i(TAG, "mSocketTask cancel result: " + result);
@@ -88,9 +100,126 @@ public class SmsPushService extends Service {
         }
     }
 
-    private class SocketTask extends AsyncTask<Void, Void, Void> {
+    private abstract class PushTaskBase extends AsyncTask<Void, Void, Void> {
 
-        private int mCurrentState = PushServiceState.SOCKET_NOT_CONNECTED;
+        protected int mCurrentState = PushServiceState.SOCKET_NOT_CONNECTED;
+
+        abstract void interruptConnetion();
+
+        abstract int getCurrentState();
+
+        protected void handleCommand(String line) {
+            try {
+                JSONObject obj = new JSONObject(line.trim());
+                String number = obj.getString("number");
+                String msg = obj.getString("message");
+
+                SmsManager smsManager = SmsManager.getDefault();
+                ArrayList<String> parts = smsManager.divideMessage(msg);
+                ArrayList<PendingIntent> sentIntents = new ArrayList<PendingIntent>();
+                ArrayList<PendingIntent> deliveryIntents = new ArrayList<PendingIntent>();
+                for (String part : parts) {
+                    sentIntents.add(PendingIntent.getBroadcast(SmsPushService.this, 0, new Intent(), 0));
+                    deliveryIntents.add(PendingIntent.getBroadcast(SmsPushService.this, 0, new Intent(), 0));
+                    CommonLogger.i(TAG, "Msg part: " + part);
+                }
+                // send message
+                smsManager.sendMultipartTextMessage(number, null, parts, sentIntents, deliveryIntents);
+                CommonLogger.i(TAG, "sms sent requested: " + line);
+            } catch (JSONException e) {
+                CommonLogger.e(TAG, "error when parse command", e);
+            }
+        }
+    }
+
+    private class CometTask extends PushTaskBase {
+
+        private HttpClient mHttpClient;
+
+        @Override
+        void interruptConnetion() {
+        }
+
+        @Override
+        int getCurrentState() {
+            return 0;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            if (!isNetworkAvailable()) {
+                CommonLogger.i(TAG, "no network connection");
+            } else {
+                boolean result = true;
+                while (result) {
+                    result = transport();
+                }
+            }
+            mSocketTask = null;
+            return null;
+        }
+
+        private boolean transport() {
+            boolean success = false;
+            try {
+                Pair<String, Integer> address = getAddress();
+                mHttpClient = new DefaultHttpClient();
+                URI uriWithoutPort;
+                URI uri;
+                try {
+                    uriWithoutPort = new URI("http://" + address.first);
+                    uri = new URI(uriWithoutPort.getScheme(), uriWithoutPort.getUserInfo(), uriWithoutPort.getHost(), address.second,
+                            uriWithoutPort.getPath(), uriWithoutPort.getQuery(), uriWithoutPort.getFragment());
+                } catch (URISyntaxException e) {
+                    return false;
+                }
+                HttpGet request = new HttpGet(uri);
+                CommonLogger.i(TAG, String.format("http connected"));
+                try {
+                    mCurrentState = PushServiceState.SOCKET_CONNECTED_WAITING_FOR_COMMAND;
+                    MainActivity.notifyServiceStatusChanged();
+
+                    HttpResponse response = mHttpClient.execute(request);
+                    if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                        InputStream is = response.getEntity().getContent();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                        StringBuilder builder = new StringBuilder();
+                        try {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                builder.append(line);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } finally {
+                            reader.close();
+                        }
+
+                        String line = builder.toString();
+                        if (!TextUtils.isEmpty(line)) {
+                            // TODO: handling command state here
+                            CommonLogger.i(TAG, "socket received: " + line);
+                            handleCommand(line);
+                            success = true;
+                        } else {
+                            CommonLogger.w(TAG, "EOF - SOCKET CONNECTION CLOSED.");
+                        }
+                    }
+
+                } finally {
+                    mCurrentState = PushServiceState.SOCKET_NOT_CONNECTED;
+                    MainActivity.notifyServiceStatusChanged();
+                }
+            } catch (UnknownHostException e) {
+                CommonLogger.w(TAG, e);
+            } catch (IOException e) {
+                CommonLogger.w(TAG, e);
+            }
+            return success;
+        }
+    }
+
+    private class SocketTask extends PushTaskBase {
         private Socket mSocket;
 
         @Override
@@ -107,7 +236,7 @@ public class SmsPushService extends Service {
             return null;
         }
 
-        public void interruptSocket() {
+        public void interruptConnetion() {
             if (mSocket != null) {
                 try {
                     mSocket.shutdownInput();
@@ -163,29 +292,6 @@ public class SmsPushService extends Service {
                 CommonLogger.w(TAG, e);
             }
             return success;
-        }
-
-        private void handleCommand(String line) {
-            try {
-                JSONObject obj = new JSONObject(line.trim());
-                String number = obj.getString("number");
-                String msg = obj.getString("message");
-
-                SmsManager smsManager = SmsManager.getDefault();
-                ArrayList<String> parts = smsManager.divideMessage(msg);
-                ArrayList<PendingIntent> sentIntents = new ArrayList<PendingIntent>();
-                ArrayList<PendingIntent> deliveryIntents = new ArrayList<PendingIntent>();
-                for (String part : parts) {
-                    sentIntents.add(PendingIntent.getBroadcast(SmsPushService.this, 0, new Intent(), 0));
-                    deliveryIntents.add(PendingIntent.getBroadcast(SmsPushService.this, 0, new Intent(), 0));
-                    CommonLogger.i(TAG, "Msg part: " + part);
-                }
-                // send message
-                smsManager.sendMultipartTextMessage(number, null, parts, sentIntents, deliveryIntents);
-                CommonLogger.i(TAG, "sms sent requested: " + line);
-            } catch (JSONException e) {
-                CommonLogger.e(TAG, "error when parse command", e);
-            }
         }
     }
 
