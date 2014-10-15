@@ -12,12 +12,10 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,7 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.telephony.SmsManager;
@@ -40,8 +37,8 @@ import android.util.Pair;
  * @author eggfly
  */
 public class SmsPushService extends Service {
-    private final static String DEFAULT_HOST = "aws.host8.tk";
-    private final static int DEFAULT_PORT = 6666;
+    private final static String DEFAULT_HOST = "aws.host8.tk/comet";
+    private final static int DEFAULT_PORT = 8080;
     private static String sHost;
     private final static int INVALID_PORT = -1;
     private static int sPort = INVALID_PORT;
@@ -56,7 +53,7 @@ public class SmsPushService extends Service {
 
     private static final String TAG = "SmsPushService";
     public static final String ACTION_START = "com.eggfly.sms.ACTION_START_PUSHSERVICE";
-    public volatile PushTaskBase mSocketTask;
+    public volatile PushTaskBase mPushTask;
     private static SmsPushService sInstance;
 
     @Override
@@ -82,10 +79,10 @@ public class SmsPushService extends Service {
     public void onDestroy() {
         super.onDestroy();
         sInstance = null;
-        if (mSocketTask != null) {
-            mSocketTask.interruptConnetion();
-            boolean result = mSocketTask.cancel(true);
-            mSocketTask = null;
+        if (mPushTask != null) {
+            mPushTask.interruptConnetion();
+            boolean result = mPushTask.cancel(true);
+            mPushTask = null;
             CommonLogger.i(TAG, "mSocketTask cancel result: " + result);
         }
         CommonLogger.i(TAG, "SmsPushService destroyed");
@@ -93,9 +90,10 @@ public class SmsPushService extends Service {
     }
 
     private void startTcp() {
-        if (mSocketTask == null) {
-            mSocketTask = new SocketTask();
-            mSocketTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+        if (mPushTask == null) {
+            // mPushTask = new SocketTask();
+            mPushTask = new CometTask();
+            mPushTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
                     (Void[]) null);
         }
     }
@@ -155,7 +153,7 @@ public class SmsPushService extends Service {
                     result = transport();
                 }
             }
-            mSocketTask = null;
+            mPushTask = null;
             return null;
         }
 
@@ -232,7 +230,7 @@ public class SmsPushService extends Service {
                     result = transport();
                 }
             }
-            mSocketTask = null;
+            mPushTask = null;
             return null;
         }
 
@@ -317,11 +315,11 @@ public class SmsPushService extends Service {
     }
 
     private int getServiceStateInner() {
-        if (mSocketTask == null) {
+        if (mPushTask == null) {
             // return R.string.socket_task_not_running;
             return PushServiceState.SOCKET_TASK_NOT_RUNNING;
         } else {
-            return mSocketTask.getCurrentState();
+            return mPushTask.getCurrentState();
         }
     }
 
