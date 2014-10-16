@@ -55,7 +55,7 @@ def send(handler, msg):
     handler.finish()
     workers.remove(handler)
     print "workers after send:", workers
-    worker_info = json.dumps(vars(handler.request))
+    worker_info = str(vars(handler.request))
     sms_queue.set_sms_sent_to_worker(worker_info, msg['id'])
     print "set_sms_sent_to_worker complete!"
 class MainHandler(tornado.web.RequestHandler):
