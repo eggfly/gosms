@@ -148,9 +148,16 @@ public class SmsPushService extends Service {
             if (!isNetworkAvailable()) {
                 CommonLogger.i(TAG, "no network connection");
             } else {
-                boolean result = true;
-                while (result) {
-                    result = transport();
+                while (true) {
+                    boolean result = true;
+                    while (result) {
+                        result = transport();
+                    }
+                    try {
+                        Thread.sleep(10*1000);
+                    } catch (InterruptedException e) {
+                        CommonLogger.w(TAG, e);
+                    }
                 }
             }
             mPushTask = null;
