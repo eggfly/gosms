@@ -61,7 +61,7 @@ class SendHandler(tornado.web.RequestHandler):
             return
         sms = {'type': 'sendsms', 'number': number, 'message': message}
         sms_json = json.dumps(sms)
-        ok, bundle = sms_queue.enqueue(1, sms_json)
+        ok, bundle = sms_queue.enqueue(2, sms_json)
         sms_queue.dump()
         try_send_one_message()
         bundle['result'] = ok
