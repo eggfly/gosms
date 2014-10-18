@@ -24,4 +24,5 @@ _testmain.go
 
 *.pyc
 *.db
+log.txt
 !default.db
