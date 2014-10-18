@@ -16,22 +16,27 @@ STATE_REMOTE_DELIVERED = 4
 STATE_REMOTE_REPLIED = 5
 
 DEFAULT_DB = 'default.db'
-SMS_DB = "sms.db"
+SMS_DB = 'sms.db'
 if not os.path.isfile(SMS_DB) and os.path.isfile(DEFAULT_DB):
     shutil.copy(DEFAULT_DB, SMS_DB)
 conn = sqlite3.connect('sms.db')
 c = conn.cursor()
 
 def add_new_sms(user_id, to_address, message):
-    ok = antispam(user_id, to_address, message)
+    ok, message = is_blocked(user_id, to_address, message)
+    if not ok: return ok, message
     c.execute("INSERT INTO sms (user_id, to_address, message, status) VALUES (?, ?, ?, ?)",
         (user_id, to_address, message, STATE_SERVER_QUEUING))
     conn.commit()
     return c.lastrowid
-def antispam(user_id, to_address, message):
+def is_blocked(user_id, to_address, message):
     c.execute("SELECT antispam FROM user WHERE id = ?", (user_id,))
-     c.fetchone()
-    return True
+    user = c.fetchone()
+    if user is None: return False, "user_id not found"
+    antispamed = user[0]
+    print antispamed
+    antispamed = antispamed > 0
+    return antispamed, "antispamed" if antispamed else "not antispamed"
 def fetch_sms_task():
     c.execute("SELECT id, to_address, message FROM sms WHERE status = ? order by add_time", (STATE_SERVER_QUEUING,))
     return c.fetchone(), c.rowcount
@@ -46,3 +51,5 @@ if __name__ == '__main__':
     print result
     sms_id = result[0][0]
     print set_sms_sent_to_worker("ip", sms_id)
+    c.execute("DELETE FROM sms WHERE id = ?", (sms_id,))
+    conn.commit()

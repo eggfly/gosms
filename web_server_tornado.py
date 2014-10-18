@@ -17,13 +17,13 @@ class SmsDBQueue:
             message = item[2]
             item = {'type': 'sendsms', 'id': sms_id, 'number': number, 'message': message}
         return item
-    def enqueue(self, cmd_str):
+    def enqueue(self, user_id, cmd_str):
         cmd = json.loads(cmd_str)
         cmd_type = cmd['type']
         number = cmd['number']
         msg = cmd['message']
         # TODO user_id
-        result = smsdb.add_new_sms(1, number, msg)
+        result = smsdb.add_new_sms(user_id, number, msg)
         return result
     def set_sms_sent_to_worker(self, worker_info, sms_id):
         smsdb.set_sms_sent_to_worker(worker_info, sms_id)
@@ -61,10 +61,11 @@ class SendHandler(tornado.web.RequestHandler):
             return
         sms = {'type': 'sendsms', 'number': number, 'message': message}
         sms_json = json.dumps(sms)
-        sms_queue.enqueue(sms_json)
+        ok, bundle = sms_queue.enqueue(1, sms_json)
         sms_queue.dump()
         try_send_one_message()
-        self.write("ok")
+        bundle['result'] = ok
+        self.write(json.dumps(bundle))
 class CometHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
