@@ -56,10 +56,12 @@ def is_blocked(user_id, to_address, message):
         return True, {'msg': 'cannot send more than %d messages in free account, please contact webadmin' %FREE_TIER_COUNT}
     c.execute('SELECT to_address, message, add_time FROM sms WHERE user_id = ? order by add_time DESC', (user_id,))
     latest = c.fetchone()
-    latest_time = latest[2]
-    latest_time = time.strptime(latest_time, "%Y-%m-%d %H:%M:%S")
-    diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(time.mktime(latest_time))
-    blocked = diff < datetime.timedelta(seconds=SEND_INTERVAL_SECONDS)
+    blocked = False
+    if latest:
+        latest_time = latest[2]
+        latest_time = time.strptime(latest_time, "%Y-%m-%d %H:%M:%S")
+        diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(time.mktime(latest_time))
+        blocked = diff < datetime.timedelta(seconds=SEND_INTERVAL_SECONDS)
     interval_msg = "blocked, reason: cannot send sms within %d seconds" %SEND_INTERVAL_SECONDS
     return blocked, {"msg": interval_msg if blocked else "ok"}
 def fetch_sms_task():
