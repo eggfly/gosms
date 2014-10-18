@@ -21,6 +21,8 @@ public class MainActivity extends Activity implements OnClickListener {
     private Button mStartServiceButton;
     private Button mStopServiceButton;
     private Button mSetAddressButton;
+    private EditText mHostEditText;
+    private EditText mPortEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,7 +32,6 @@ public class MainActivity extends Activity implements OnClickListener {
 
         mLogEditText = (EditText) findViewById(R.id.logEditText);
         mLogEditText.setKeyListener(null);
-        // mLogEditText.setText(UILogger.getFullLog());
 
         mStartServiceButton = (Button) findViewById(R.id.startServiceButton);
         mStartServiceButton.setOnClickListener(this);
@@ -42,6 +43,10 @@ public class MainActivity extends Activity implements OnClickListener {
         mSetAddressButton.setOnClickListener(this);
 
         mStatusTextView = (TextView) findViewById(R.id.statusTextView);
+        mHostEditText = (EditText) findViewById(R.id.hostEditText);
+        mPortEditText = (EditText) findViewById(R.id.portEditText);
+        mHostEditText.setText("ubuntu.host8.tk/comet");
+        mPortEditText.setText("8080");
     }
 
     @Override
@@ -86,11 +91,8 @@ public class MainActivity extends Activity implements OnClickListener {
         } else if (view == mStopServiceButton) {
             SmsPushService.stopPushService(this);
         } else if (view == mSetAddressButton) {
-            String host = ((EditText) findViewById(R.id.hostEditText))
-                    .getText().toString();
-            int port = Integer
-                    .valueOf(((EditText) findViewById(R.id.portEditText))
-                            .getText().toString());
+            String host = mHostEditText.getText().toString();
+            int port = Integer.valueOf(mPortEditText.getText().toString());
             SmsPushService.setAddress(host, port);
         } else {
             return;

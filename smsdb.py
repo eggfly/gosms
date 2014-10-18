@@ -23,10 +23,15 @@ conn = sqlite3.connect('sms.db')
 c = conn.cursor()
 
 def add_new_sms(user_id, to_address, message):
+    ok = antispam(user_id, to_address, message)
     c.execute("INSERT INTO sms (user_id, to_address, message, status) VALUES (?, ?, ?, ?)",
         (user_id, to_address, message, STATE_SERVER_QUEUING))
     conn.commit()
     return c.lastrowid
+def antispam(user_id, to_address, message):
+    c.execute("SELECT antispam FROM user WHERE id = ?", (user_id,))
+     c.fetchone()
+    return True
 def fetch_sms_task():
     c.execute("SELECT id, to_address, message FROM sms WHERE status = ? order by add_time", (STATE_SERVER_QUEUING,))
     return c.fetchone(), c.rowcount
