@@ -25,4 +25,3 @@ _testmain.go
 *.pyc
 *.db
 !default.db
-!sms.db
