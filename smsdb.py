@@ -26,6 +26,13 @@ if not os.path.isfile(SMS_DB) and os.path.isfile(DEFAULT_DB):
     shutil.copy(DEFAULT_DB, SMS_DB)
 conn = sqlite3.connect('sms.db')
 c = conn.cursor()
+def auth(username, password):
+    c.execute('SELECT id FROM user WHERE name = ? AND password = ?', (username, password))
+    user = c.fetchone()
+    if user:
+        return True, {'user_id': user[0]}
+    else: 
+        return False, {'msg': 'username or password are not match'}
 def add_new_sms(user_id, to_address, message):
     blocked, bundle = is_blocked(user_id, to_address, message)
     if blocked: return False, bundle

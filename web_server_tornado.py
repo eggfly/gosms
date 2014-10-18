@@ -6,7 +6,7 @@ import logging
 import os
 import json
 import smsdb
-class SmsDBQueue:
+class SmsModel:
     def __init__(self):
         pass
     def fetch(self):
@@ -29,13 +29,15 @@ class SmsDBQueue:
         smsdb.set_sms_sent_to_worker(worker_info, sms_id)
     def dump(self):
         pass
+    def auth(self, username, password):
+        return smsdb.auth(username, password)
 workers = []
-sms_queue = SmsDBQueue()
+model = SmsModel()
 def try_send_one_message():
     if len(workers) > 0:
         handler = workers[0]
-        msg = sms_queue.fetch()
-        sms_queue.dump()
+        msg = model.fetch()
+        model.dump()
         if msg is not None:
             send(handler, msg)
 def send(handler, msg):
@@ -44,7 +46,7 @@ def send(handler, msg):
     workers.remove(handler)
     print "workers after send:", workers
     worker_info = str(vars(handler.request))
-    sms_queue.set_sms_sent_to_worker(worker_info, msg['id'])
+    model.set_sms_sent_to_worker(worker_info, msg['id'])
     print "set_sms_sent_to_worker complete!"
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -56,13 +58,22 @@ class SendHandler(tornado.web.RequestHandler):
         print "get /send"
         number = self.get_argument('number', '', True)
         message = self.get_argument('message', '', True)
-        if not number:
+        user = self.get_argument('user', '')
+        password = self.get_argument('password', '')
+        if not number or not user or not password:
+            self.write('invalid params')
             self.set_status(400)
             return
+        ok, bundle = model.auth(user, password)
+        if not ok:
+            bundle['result'] = ok
+            self.write(json.dumps(bundle))
+            return
+        user_id = bundle['user_id']
         sms = {'type': 'sendsms', 'number': number, 'message': message}
         sms_json = json.dumps(sms)
-        ok, bundle = sms_queue.enqueue(2, sms_json)
-        sms_queue.dump()
+        ok, bundle = model.enqueue(user_id, sms_json)
+        model.dump()
         try_send_one_message()
         bundle['result'] = ok
         self.write(json.dumps(bundle))
