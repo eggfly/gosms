@@ -19,6 +19,7 @@ STATE_REMOTE_REPLIED = 5
 
 FREE_TIER_COUNT = 10
 SEND_INTERVAL_SECONDS = 5
+MAX_LENGTH = 140
 
 DEFAULT_DB = 'default.db'
 SMS_DB = 'sms.db'
@@ -43,6 +44,9 @@ def add_new_sms(user_id, to_address, message):
     success = c.rowcount == 1
     return success, {'id': c.lastrowid, 'msg': 'ok' if success else "error"}
 def is_blocked(user_id, to_address, message):
+    length = len(message)
+    if length > MAX_LENGTH:
+        return True, {'msg': 'cannot send very long message, max(%d), current(%d)' %(MAX_LENGTH, length)}
     c.execute("SELECT antispam FROM user WHERE id = ?", (user_id,))
     user = c.fetchone()
     if user is None: return True, {'msg': "user_id not found"}

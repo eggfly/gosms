@@ -5,12 +5,12 @@ import tornado.web
 import logging
 import os
 import json
-import smsdb
+import db
 class SmsModel:
     def __init__(self):
         pass
     def fetch(self):
-        item, count = smsdb.fetch_sms_task() 
+        item, count = db.fetch_sms_task() 
         if item:
             sms_id = item[0]
             number = item[1]
@@ -23,14 +23,14 @@ class SmsModel:
         number = cmd['number']
         msg = cmd['message']
         # TODO user_id
-        result = smsdb.add_new_sms(user_id, number, msg)
+        result = db.add_new_sms(user_id, number, msg)
         return result
     def set_sms_sent_to_worker(self, worker_info, sms_id):
-        smsdb.set_sms_sent_to_worker(worker_info, sms_id)
+        db.set_sms_sent_to_worker(worker_info, sms_id)
     def dump(self):
         pass
     def auth(self, username, password):
-        return smsdb.auth(username, password)
+        return db.auth(username, password)
 workers = []
 model = SmsModel()
 def try_send_one_message():
